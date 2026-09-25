@@ -1,20 +1,41 @@
 name: Release AddOn # description of this workflow, can be anything you want
 
-# triggers when pushing a tag
+# release-please keeps a release PR open on master; merging it tags the release and packages it
 on:
   push:
-    tags:
-      - '**'
+    branches:
+      - master
 
-env:
-  WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
+permissions: {}
 
 jobs:
-  release: # "release" is a job, you can name it anything you want
+  release-please:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the tag and GitHub release
+      pull-requests: write # open and update the release PR
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # reads history for commit changelog
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
 
-      - uses: BigWigsMods/packager@v2
+  # Runs here instead of on tag push: tags created with GITHUB_TOKEN do not trigger other workflows
+  package:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # attach the zip to the GitHub release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+          fetch-depth: 0 # packager reads the version from the tag
+          persist-credentials: false
+
+      - uses: BigWigsMods/packager@e50a250f8705041e40f2fa1ddcb280a686d65aa0 # v2.6.1
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
