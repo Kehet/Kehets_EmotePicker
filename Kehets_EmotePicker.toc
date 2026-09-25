@@ -5,7 +5,7 @@
 ## Version: @project-version@
 ## DefaultState: Enabled
 ## RequiredDeps: Ace3
-## X-Wago-ID: xxx
+## X-Curse-Project-ID: 1711340
 ## SavedVariables: EmotePickerDB
 
 Kehets_EmotePicker.lua
