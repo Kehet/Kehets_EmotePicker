@@ -4,8 +4,9 @@
 ## Author: Kehet
 ## Version: @project-version@
 ## DefaultState: Enabled
-## RequiredDeps: Ace3
+## OptionalDeps: Ace3
 ## X-Curse-Project-ID: 1711340
 ## SavedVariables: EmotePickerDB
 
+embeds.xml
 Kehets_EmotePicker.lua
