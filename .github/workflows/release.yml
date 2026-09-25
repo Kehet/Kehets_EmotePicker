@@ -35,7 +35,19 @@ jobs:
           fetch-depth: 0 # packager reads the version from the tag
           persist-credentials: false
 
-      - uses: BigWigsMods/packager@e50a250f8705041e40f2fa1ddcb280a686d65aa0 # v2.6.1
+      - name: Install Subversion # the Ace3 externals are svn repositories
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -yq subversion
+
+      # The packager action skips a tagged commit on a branch push, expecting a tag push to build it.
+      # GITHUB_REF cannot be overridden in step env, so run release.sh with the tag ref directly.
+      - name: Package and upload
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+          PACKAGER_SHA: e50a250f8705041e40f2fa1ddcb280a686d65aa0 # BigWigsMods/packager v2.6.1
+        run: |
+          curl -fsSL "https://raw.githubusercontent.com/BigWigsMods/packager/${PACKAGER_SHA}/release.sh" -o "$RUNNER_TEMP/release.sh"
+          GITHUB_REF="refs/tags/${TAG_NAME}" GITHUB_REF_NAME="${TAG_NAME}" bash "$RUNNER_TEMP/release.sh"
