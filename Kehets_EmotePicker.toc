@@ -1,0 +1,11 @@
+## Interface: 50504
+## Title: |cFF009900Kehet's|r EmotePicker
+## Notes: Pick and perform emotes from a searchable window
+## Author: Kehet
+## Version: @project-version@
+## DefaultState: Enabled
+## RequiredDeps: Ace3
+## X-Wago-ID: xxx
+## SavedVariables: EmotePickerDB
+
+Kehets_EmotePicker.lua
