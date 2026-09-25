@@ -16,3 +16,8 @@ The window lists all built-in emotes. Your most recently used emotes come first.
 - Press Escape to close the window.
 - `/ep` or `/emotepicker` opens the picker.
 - `/ep minimap` shows or hides the minimap button.
+
+## Requirements
+
+- World of Warcraft: Mists of Pandaria Classic
+- The [Ace3](https://www.curseforge.com/wow/addons/ace3) addon
