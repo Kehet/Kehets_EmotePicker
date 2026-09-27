@@ -8,5 +8,7 @@
 ## X-Curse-Project-ID: 1711340
 ## SavedVariables: EmotePickerDB
 
-embeds.xml
+#@non-debug@
+# embeds.xml
+#@end-non-debug@
 Kehets_EmotePicker.lua
