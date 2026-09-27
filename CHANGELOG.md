@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/Kehet/Kehets_EmotePicker/compare/1.0.1...1.1.0) (2026-09-27)
+
+
+### Features
+
+* list slash commands in the enabled message ([#6](https://github.com/Kehet/Kehets_EmotePicker/issues/6)) ([21981a8](https://github.com/Kehet/Kehets_EmotePicker/commit/21981a8b72d4a8747207a9cce95d0f6403a03130))
+
 ## [1.0.1](https://github.com/Kehet/Kehets_EmotePicker/compare/1.0.0...1.0.1) (2026-09-25)
 
 
