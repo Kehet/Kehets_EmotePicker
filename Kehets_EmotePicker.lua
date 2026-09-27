@@ -455,6 +455,10 @@ function EmotePicker:OnInitialize()
     self:RegisterChatCommand("emotepicker", "SlashCommand")
 end
 
+function EmotePicker:OnEnable()
+    self:Print("Enabled - Use /ep or /emotepicker to open the picker, /ep minimap to show or hide the minimap button")
+end
+
 function EmotePicker:SlashCommand(msg)
     msg = msg and msg:trim():lower() or ""
 
