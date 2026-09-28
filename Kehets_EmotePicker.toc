@@ -1,4 +1,4 @@
-## Interface: 50504
+## Interface: 50504, 16001
 ## Title: |cFF009900Kehet's|r EmotePicker
 ## Notes: Pick and perform emotes from a searchable window
 ## Author: Kehet
