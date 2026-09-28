@@ -21,3 +21,7 @@ The window lists all built-in emotes. Your most recently used emotes come first.
 
 - World of Warcraft: Mists of Pandaria Classic
 - The [Ace3](https://www.curseforge.com/wow/addons/ace3) addon
+
+## License
+
+Public domain (The Unlicense). See `LICENSE`.
