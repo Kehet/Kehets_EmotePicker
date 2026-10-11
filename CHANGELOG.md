@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/Kehet/Kehets_EmotePicker/compare/1.1.0...1.2.0) (2026-10-11)
+
+
+### Features
+
+* add a settings page for the login message ([#13](https://github.com/Kehet/Kehets_EmotePicker/issues/13)) ([50945f1](https://github.com/Kehet/Kehets_EmotePicker/commit/50945f1fafbc9bcdbd9932e7c150e0a1b998c518))
+
 ## [1.1.0](https://github.com/Kehet/Kehets_EmotePicker/compare/1.0.1...1.1.0) (2026-09-27)
 
 
