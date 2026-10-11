@@ -17,6 +17,10 @@ The window lists all built-in emotes. Your most recently used emotes come first.
 - `/ep` or `/emotepicker` opens the picker.
 - `/ep minimap` shows or hides the minimap button.
 
+## Settings
+
+Open Options > AddOns > Kehet's EmotePicker to turn the login message off, or to choose where it shows.
+
 ## Requirements
 
 - World of Warcraft: Mists of Pandaria Classic
