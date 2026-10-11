@@ -4,7 +4,7 @@
 ## Author: Kehet
 ## Version: @project-version@
 ## DefaultState: Enabled
-## OptionalDeps: Ace3
+## OptionalDeps: Ace3, LibKehetsVerbosity-1.0
 ## X-Curse-Project-ID: 1711340
 ## SavedVariables: EmotePickerDB
 

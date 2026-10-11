@@ -1,4 +1,12 @@
-local EmotePicker = LibStub("AceAddon-3.0"):NewAddon("Kehet's EmotePicker", "AceConsole-3.0")
+local EmotePicker = LibStub("AceAddon-3.0"):NewAddon("Kehet's EmotePicker", "AceConsole-3.0", "LibKehetsVerbosity-1.0")
+
+-- Messages the player can turn off or move in the settings
+EmotePicker:RegisterMessageTypes({
+    banner = {
+        name = "Login message",
+        desc = "The line that says the addon is enabled.",
+    },
+})
 
 -- Shown first, in this order. Tokens missing from the client are skipped.
 local POPULAR_TOKENS = {
@@ -450,13 +458,14 @@ local defaults = {
 
 function EmotePicker:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("EmotePickerDB", defaults, true)
+    self:RegisterMessagePage()
     self:CreateMinimapButton()
     self:RegisterChatCommand("ep", "SlashCommand")
     self:RegisterChatCommand("emotepicker", "SlashCommand")
 end
 
 function EmotePicker:OnEnable()
-    self:Print("Enabled - Use /ep or /emotepicker to open the picker, /ep minimap to show or hide the minimap button")
+    self:Notify("banner", "Enabled - Use /ep or /emotepicker to open the picker, /ep minimap to show or hide the minimap button")
 end
 
 function EmotePicker:SlashCommand(msg)
