@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/Kehet/Kehets_EmotePicker/compare/1.2.0...1.3.0) (2026-10-17)
+
+
+### Features
+
+* support Classic Era (interface 11509) ([#15](https://github.com/Kehet/Kehets_EmotePicker/issues/15)) ([6c622d8](https://github.com/Kehet/Kehets_EmotePicker/commit/6c622d88c42df224eb18f400df47cbe9d9e25a10))
+
 ## [1.2.0](https://github.com/Kehet/Kehets_EmotePicker/compare/1.1.0...1.2.0) (2026-10-11)
 
 
