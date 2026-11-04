@@ -6,6 +6,7 @@
 ## DefaultState: Enabled
 ## OptionalDeps: Ace3, LibKehetsVerbosity-1.0
 ## X-Curse-Project-ID: 1711340
+## X-Wago-ID: ANz7mM64
 ## SavedVariables: EmotePickerDB
 
 #@non-debug@
