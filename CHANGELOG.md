@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/Kehet/Kehets_EmotePicker/compare/1.3.0...1.3.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* upload releases to Wago ([#19](https://github.com/Kehet/Kehets_EmotePicker/issues/19)) ([e0f3ffe](https://github.com/Kehet/Kehets_EmotePicker/commit/e0f3ffe24c48f862801edd9a238ae136c1113d04))
+
 ## [1.3.0](https://github.com/Kehet/Kehets_EmotePicker/compare/1.2.0...1.3.0) (2026-10-17)
 
 
