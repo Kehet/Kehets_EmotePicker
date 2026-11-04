@@ -1,0 +1,52 @@
+name: Bug Report
+description: Report a bug in Kehet's EmotePicker
+title: "[Bug]: "
+labels: ["bug"]
+body:
+    - type: textarea
+      id: what-happened
+      attributes:
+          label: What happened?
+          description: What did you expect to happen instead?
+          placeholder: When I do X, Y happens instead of Z.
+      validations:
+          required: true
+    - type: textarea
+      id: how-to-reproduce
+      attributes:
+          label: How to reproduce the bug
+          description: A reliable set of steps, if possible.
+          placeholder: 1. Join a party 2. ...
+      validations:
+          required: true
+    - type: input
+      id: addon-version
+      attributes:
+          label: Addon version
+          description: Shown in the AddOns list on the character select screen, or on CurseForge.
+          placeholder: 1.0.0
+      validations:
+          required: true
+    - type: input
+      id: interface-version
+      attributes:
+          label: Interface version
+          description: "Type `/dump select(4, GetBuildInfo())` in chat and paste the number."
+          placeholder: "50504"
+      validations:
+          required: true
+    - type: textarea
+      id: lua-error
+      attributes:
+          label: Lua error
+          description: If you got an error, paste it here. BugSack or `/console scriptErrors 1` shows it.
+          render: lua
+      validations:
+          required: false
+    - type: textarea
+      id: notes
+      attributes:
+          label: Notes
+          description: Other addons you run, or anything else that might be relevant.
+      validations:
+          required: false
