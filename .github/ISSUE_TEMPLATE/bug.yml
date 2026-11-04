@@ -1,6 +1,5 @@
 name: Bug Report
 description: Report a bug in Kehet's EmotePicker
-title: "[Bug]: "
 labels: ["bug"]
 body:
     - type: textarea
