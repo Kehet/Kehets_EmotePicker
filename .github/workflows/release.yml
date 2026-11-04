@@ -18,8 +18,18 @@ jobs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
+      # A token from the release-please app, so the release PR it opens triggers CI without approval
+      - name: Generate a token for the release-please app
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_PLEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_PLEASE_APP_PRIVATE_KEY }}
+
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
   # Tags created with GITHUB_TOKEN do not trigger other workflows, but workflow_dispatch does.
   # Running package.yml on the tag ref lets the packager action build it as a tag release.
