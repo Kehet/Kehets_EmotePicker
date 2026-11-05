@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/Kehet/Kehets_EmotePicker/compare/1.3.1...1.4.0) (2026-11-05)
+
+
+### Features
+
+* load in World of Warcraft: Forever ([#22](https://github.com/Kehet/Kehets_EmotePicker/issues/22)) ([facd397](https://github.com/Kehet/Kehets_EmotePicker/commit/facd397d2532190a030683c075046ba85d8597a4))
+
 ## [1.3.1](https://github.com/Kehet/Kehets_EmotePicker/compare/1.3.0...1.3.1) (2026-11-04)
 
 
