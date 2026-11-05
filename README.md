@@ -25,6 +25,7 @@ Open Options > AddOns > Kehet's EmotePicker to turn the login message off, or to
 
 - World of Warcraft: Mists of Pandaria Classic
 - World of Warcraft: Classic Era
+- World of Warcraft: Forever
 - The [Ace3](https://www.curseforge.com/wow/addons/ace3) addon
 
 ## License
