@@ -1,4 +1,7 @@
-local EmotePicker = LibStub("AceAddon-3.0"):NewAddon("Kehet's EmotePicker", "AceConsole-3.0", "LibKehetsVerbosity-1.0")
+local ADDON_NAME = ...
+
+local EmotePicker = { name = "Kehet's EmotePicker" }
+LibStub("LibKehetsVerbosity-2.0"):Embed(EmotePicker, function() return EmotePicker.db end)
 
 -- Messages the player can turn off or move in the settings
 EmotePicker:RegisterMessageTypes({
@@ -29,6 +32,15 @@ local BUTTON_HEIGHT = 22
 local BUTTON_GAP = 4
 
 local STAT_ROW_HEIGHT = 18
+
+-- Width of the button grid, and of the window around it
+local CONTENT_WIDTH = COLUMNS * (BUTTON_WIDTH + BUTTON_GAP) - BUTTON_GAP
+local FRAME_WIDTH = CONTENT_WIDTH + 46
+
+-- Clients that ship a template use it, the others fall back to an older look
+local function HasTemplate(name)
+    return C_XMLUtil ~= nil and C_XMLUtil.GetTemplateInfo ~= nil and C_XMLUtil.GetTemplateInfo(name) ~= nil
+end
 
 local emotes
 local emotesByToken
@@ -103,7 +115,7 @@ end
 
 -- Most recently used emotes first, the rest keep their default order
 local function SortEmotes()
-    local lastUsed = EmotePicker.db.profile.lastUsed
+    local lastUsed = EmotePicker.db.lastUsed
     table.sort(emotes, function(a, b)
         local usedA = lastUsed[a.token] or 0
         local usedB = lastUsed[b.token] or 0
@@ -115,13 +127,13 @@ local function SortEmotes()
 end
 
 local function PerformEmote(emote)
-    if EmotePicker.db.profile.requireTarget and not UnitExists("target") then
+    if EmotePicker.db.requireTarget and not UnitExists("target") then
         EmotePicker:Print("|cFFFF0000You need a target to use " .. emote.command .. "|r")
         return
     end
 
     -- A counter instead of time() so two emotes in the same second still keep their order
-    local profile = EmotePicker.db.profile
+    local profile = EmotePicker.db
     profile.useCounter = profile.useCounter + 1
     profile.lastUsed[emote.token] = profile.useCounter
     profile.useCount[emote.token] = (profile.useCount[emote.token] or 0) + 1
@@ -215,7 +227,7 @@ local function RefreshStatistics()
     local stats = {}
     local total = 0
 
-    for token, count in pairs(EmotePicker.db.profile.useCount) do
+    for token, count in pairs(EmotePicker.db.useCount) do
         local emote = emotesByToken[token]
         table.insert(stats, { name = emote and emote.name or token, count = count })
         total = total + count
@@ -245,13 +257,9 @@ local function RefreshStatistics()
 end
 
 local function SelectTab(index)
-    for i, button in ipairs(frame.tabButtons) do
-        if i == index then
-            button:LockHighlight()
-        else
-            button:UnlockHighlight()
-        end
-        button.panel:SetShown(i == index)
+    PanelTemplates_SetTab(frame, index)
+    for i, tab in ipairs(frame.Tabs) do
+        tab.panel:SetShown(i == index)
     end
 
     if index == 1 then
@@ -262,9 +270,28 @@ local function SelectTab(index)
     end
 end
 
+-- A recessed box with a scrolling list inside, like the native loot and quest panels
+local function CreateScrollList(parent, top, bottom)
+    local inset = CreateFrame("Frame", nil, parent, HasTemplate("InsetFrameTemplate3") and "InsetFrameTemplate3" or nil)
+    inset:SetPoint("TOPLEFT", 8, top)
+    inset:SetPoint("BOTTOMRIGHT", -8, bottom)
+
+    local scroll = CreateFrame("ScrollFrame", nil, inset, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 4, -4)
+    scroll:SetPoint("BOTTOMRIGHT", -26, 4)
+
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetSize(CONTENT_WIDTH, 1)
+    scroll:SetScrollChild(content)
+
+    return scroll, content
+end
+
 local function CreatePickerFrame()
-    frame = CreateFrame("Frame", "KehetsEmotePickerFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(COLUMNS * (BUTTON_WIDTH + BUTTON_GAP) + 44, 470)
+    -- The flat panel is the native window look on clients that have it, with the bronze art on Forever
+    local flat = HasTemplate("DefaultPanelFlatTemplate")
+    frame = CreateFrame("Frame", "KehetsEmotePickerFrame", UIParent, flat and "DefaultPanelFlatTemplate" or "BasicFrameTemplate")
+    frame:SetSize(FRAME_WIDTH, 450)
     frame:SetPoint("CENTER")
     frame:SetFrameStrata("DIALOG")
     frame:SetMovable(true)
@@ -275,38 +302,53 @@ local function CreatePickerFrame()
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
     frame:Hide()
 
+    if not frame.CloseButton then
+        frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButtonDefaultAnchors")
+    end
+
     -- Close with Escape
     table.insert(UISpecialFrames, frame:GetName())
 
-    frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    frame.title:SetPoint("TOP", 0, -5)
-    frame.title:SetText("Kehet's EmotePicker")
+    if frame.TitleContainer and frame.TitleContainer.TitleText then
+        frame.TitleContainer.TitleText:SetText("Kehet's EmotePicker")
+    else
+        frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        frame.title:SetPoint("TOP", 0, -5)
+        frame.title:SetText("Kehet's EmotePicker")
+    end
 
-    frame.tabButtons = {}
+    -- Tabs hang below the window, like the character and spellbook frames
+    frame.Tabs = {}
     for i, label in ipairs({ "Emotes", "Statistics" }) do
-        local button = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-        button:SetSize(100, 22)
-        button:SetPoint("TOPLEFT", 12 + (i - 1) * 104, -28)
-        button:SetText(label)
-        button:SetScript("OnClick", function()
+        local tab = CreateFrame("Button", frame:GetName() .. "Tab" .. i, frame, "PanelTabButtonTemplate")
+        tab:SetID(i)
+        tab:SetText(label)
+        PanelTemplates_TabResize(tab, 0)
+        if i == 1 then
+            tab:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 11, 2)
+        else
+            tab:SetPoint("TOPLEFT", frame.Tabs[i - 1], "TOPRIGHT", 3, 0)
+        end
+        tab:SetScript("OnClick", function()
             SelectTab(i)
         end)
 
         -- Each tab's widgets live on their own panel so switching only toggles the panel
-        button.panel = CreateFrame("Frame", nil, frame)
-        button.panel:SetPoint("TOPLEFT", 0, -54)
-        button.panel:SetPoint("BOTTOMRIGHT")
+        tab.panel = CreateFrame("Frame", nil, frame)
+        tab.panel:SetPoint("TOPLEFT", 0, -24)
+        tab.panel:SetPoint("BOTTOMRIGHT")
 
-        frame.tabButtons[i] = button
+        frame.Tabs[i] = tab
     end
+    PanelTemplates_SetNumTabs(frame, #frame.Tabs)
 
     -- Emotes tab
-    local tab = frame.tabButtons[1].panel
+    local tab = frame.Tabs[1].panel
     frame.emotesTab = tab
 
     tab.search = CreateFrame("EditBox", nil, tab, "SearchBoxTemplate")
-    tab.search:SetPoint("TOPLEFT", 16, -4)
-    tab.search:SetPoint("TOPRIGHT", -12, -4)
+    tab.search:SetPoint("TOPLEFT", 16, -6)
+    tab.search:SetPoint("TOPRIGHT", -10, -6)
     tab.search:SetHeight(20)
     tab.search:SetAutoFocus(false)
     tab.search:HookScript("OnTextChanged", Refresh)
@@ -319,13 +361,7 @@ local function CreatePickerFrame()
         frame:Hide()
     end)
 
-    tab.scroll = CreateFrame("ScrollFrame", nil, tab, "UIPanelScrollFrameTemplate")
-    tab.scroll:SetPoint("TOPLEFT", 12, -32)
-    tab.scroll:SetPoint("BOTTOMRIGHT", -32, 38)
-
-    tab.content = CreateFrame("Frame", nil, tab.scroll)
-    tab.content:SetSize(COLUMNS * (BUTTON_WIDTH + BUTTON_GAP), 1)
-    tab.scroll:SetScrollChild(tab.content)
+    tab.scroll, tab.content = CreateScrollList(tab, -32, 34)
 
     tab.empty = tab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     tab.empty:SetPoint("TOP", tab.scroll, "TOP", 0, -20)
@@ -333,28 +369,22 @@ local function CreatePickerFrame()
 
     tab.requireTarget = CreateFrame("CheckButton", nil, tab, "UICheckButtonTemplate")
     tab.requireTarget:SetSize(24, 24)
-    tab.requireTarget:SetPoint("BOTTOMLEFT", 12, 8)
+    tab.requireTarget:SetPoint("BOTTOMLEFT", 10, 6)
     tab.requireTarget.label = tab.requireTarget:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     tab.requireTarget.label:SetPoint("LEFT", tab.requireTarget, "RIGHT", 2, 0)
     tab.requireTarget.label:SetText("Require target")
     tab.requireTarget:SetScript("OnClick", function(self)
-        EmotePicker.db.profile.requireTarget = self:GetChecked()
+        EmotePicker.db.requireTarget = self:GetChecked()
     end)
 
     -- Statistics tab
-    tab = frame.tabButtons[2].panel
+    tab = frame.Tabs[2].panel
     frame.statsTab = tab
 
     tab.total = tab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    tab.total:SetPoint("TOPLEFT", 16, -8)
+    tab.total:SetPoint("TOPLEFT", 16, -10)
 
-    tab.scroll = CreateFrame("ScrollFrame", nil, tab, "UIPanelScrollFrameTemplate")
-    tab.scroll:SetPoint("TOPLEFT", 12, -32)
-    tab.scroll:SetPoint("BOTTOMRIGHT", -32, 10)
-
-    tab.content = CreateFrame("Frame", nil, tab.scroll)
-    tab.content:SetSize(COLUMNS * (BUTTON_WIDTH + BUTTON_GAP), 1)
-    tab.scroll:SetScrollChild(tab.content)
+    tab.scroll, tab.content = CreateScrollList(tab, -32, 8)
 
     tab.empty = tab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     tab.empty:SetPoint("TOP", tab.scroll, "TOP", 0, -20)
@@ -362,7 +392,7 @@ local function CreatePickerFrame()
 
     frame:SetScript("OnShow", function()
         frame.emotesTab.search:SetText("")
-        frame.emotesTab.requireTarget:SetChecked(EmotePicker.db.profile.requireTarget)
+        frame.emotesTab.requireTarget:SetChecked(EmotePicker.db.requireTarget)
         SortEmotes()
         Refresh()
         SelectTab(1)
@@ -421,7 +451,7 @@ function EmotePicker:CreateMinimapButton()
             local cx, cy = GetCursorPosition()
             local scale = Minimap:GetEffectiveScale()
             local angle = math.atan2(cy / scale - my, cx / scale - mx)
-            self.db.profile.minimap.angle = angle
+            self.db.minimap.angle = angle
             UpdateMinimapButtonPosition(b, angle)
         end)
     end)
@@ -438,34 +468,55 @@ function EmotePicker:CreateMinimapButton()
     end)
     button:SetScript("OnLeave", GameTooltip_Hide)
 
-    UpdateMinimapButtonPosition(button, self.db.profile.minimap.angle)
-    button:SetShown(not self.db.profile.minimap.hide)
+    UpdateMinimapButtonPosition(button, self.db.minimap.angle)
+    button:SetShown(not self.db.minimap.hide)
     self.minimapButton = button
 end
 
 local defaults = {
-    profile = {
-        requireTarget = false,
-        useCounter = 0,
-        lastUsed = {},
-        useCount = {},
-        minimap = {
-            hide = false,
-            angle = math.rad(200),
-        },
+    requireTarget = false,
+    useCounter = 0,
+    lastUsed = {},
+    useCount = {},
+    minimap = {
+        hide = false,
+        angle = math.rad(200),
     },
 }
 
-function EmotePicker:OnInitialize()
-    self.db = LibStub("AceDB-3.0"):New("EmotePickerDB", defaults, true)
-    self:RegisterMessagePage()
-    self:CreateMinimapButton()
-    self:RegisterChatCommand("ep", "SlashCommand")
-    self:RegisterChatCommand("emotepicker", "SlashCommand")
+-- Fills in what the saved table lacks, without touching what the player has
+local function CopyDefaults(saved, source)
+    for key, value in pairs(source) do
+        if type(value) == "table" then
+            if type(saved[key]) ~= "table" then
+                saved[key] = {}
+            end
+            CopyDefaults(saved[key], value)
+        elseif saved[key] == nil then
+            saved[key] = value
+        end
+    end
 end
 
-function EmotePicker:OnEnable()
-    self:Notify("banner", "Enabled - Use /ep or /emotepicker to open the picker, /ep minimap to show or hide the minimap button")
+-- Versions up to 1.4 saved through AceDB-3.0: { profileKeys = { ["Name - Realm"] = profile }, profiles = { ... } }.
+-- Keep the profile this character used, so the usage statistics and the recent emotes stay.
+local function MigrateAceDB(saved)
+    if type(saved.profiles) ~= "table" then
+        return saved
+    end
+    local character = UnitName("player") .. " - " .. GetRealmName()
+    local profileName = type(saved.profileKeys) == "table" and saved.profileKeys[character] or "Default"
+    local profile = saved.profiles[profileName] or saved.profiles.Default or select(2, next(saved.profiles))
+    return type(profile) == "table" and profile or {}
+end
+
+local function OnAddonLoaded()
+    EmotePickerDB = MigrateAceDB(EmotePickerDB or {})
+    CopyDefaults(EmotePickerDB, defaults)
+    EmotePicker.db = EmotePickerDB
+
+    EmotePicker:RegisterMessagePage()
+    EmotePicker:CreateMinimapButton()
 end
 
 function EmotePicker:SlashCommand(msg)
@@ -474,10 +525,29 @@ function EmotePicker:SlashCommand(msg)
     if msg == "" then
         self:Toggle()
     elseif msg == "minimap" then
-        self.db.profile.minimap.hide = not self.db.profile.minimap.hide
-        self.minimapButton:SetShown(not self.db.profile.minimap.hide)
-        self:Print(self.db.profile.minimap.hide and "Minimap button hidden" or "Minimap button shown")
+        self.db.minimap.hide = not self.db.minimap.hide
+        self.minimapButton:SetShown(not self.db.minimap.hide)
+        self:Print(self.db.minimap.hide and "Minimap button hidden" or "Minimap button shown")
     else
         self:Print("Usage: /ep - open the picker, /ep minimap - show or hide the minimap button")
     end
 end
+
+SLASH_KEHETSEMOTEPICKER1 = "/ep"
+SLASH_KEHETSEMOTEPICKER2 = "/emotepicker"
+SlashCmdList.KEHETSEMOTEPICKER = function(msg)
+    EmotePicker:SlashCommand(msg)
+end
+
+local events = CreateFrame("Frame")
+events:RegisterEvent("ADDON_LOADED")
+events:RegisterEvent("PLAYER_LOGIN")
+events:SetScript("OnEvent", function(self, event, name)
+    if event == "ADDON_LOADED" and name == ADDON_NAME then
+        self:UnregisterEvent("ADDON_LOADED")
+        OnAddonLoaded()
+    elseif event == "PLAYER_LOGIN" then
+        self:UnregisterEvent("PLAYER_LOGIN")
+        EmotePicker:Notify("banner", "Enabled - Use /ep or /emotepicker to open the picker, /ep minimap to show or hide the minimap button")
+    end
+end)
