@@ -12,7 +12,7 @@ The window lists all built-in emotes. Your most recently used emotes come first.
 - Drag the minimap button to move it around the minimap.
 - Press Enter in the search bar to perform the first match.
 - Tick "Require target" to only perform emotes when you have a target. Without a target, the addon prints an error to chat and the window stays open.
-- Open the Statistics tab to see how many times you have used each emote.
+- Open the Statistics tab to see how many times you have used each emote. Emotes that you do with a slash command, such as `/wave`, or with a macro are counted too, and also move to the top of the list.
 - Press Escape to close the window.
 - `/ep` or `/emotepicker` opens the picker.
 - `/ep minimap` shows or hides the minimap button.

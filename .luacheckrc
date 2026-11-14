@@ -17,12 +17,15 @@ globals = {
 -- WoW API, FrameXML and libraries
 read_globals = {
     "C_XMLUtil",
+    "C_ChatInfo",
     "CreateFrame",
     "DoEmote",
     "GameTooltip",
     "GameTooltip_Hide",
+    "hooksecurefunc",
     "GetCursorPosition",
     "GetRealmName",
+    "GetTime",
     "LibStub",
     "MAXEMOTEINDEX",
     "Minimap",
