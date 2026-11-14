@@ -126,17 +126,40 @@ local function SortEmotes()
     end)
 end
 
+-- Counts every emote the player performs: from the picker, a slash command such as /wave, or a macro
+local lastRecordedToken, lastRecordedTime
+local function RecordEmote(token)
+    local db = EmotePicker.db
+    if not db or type(token) ~= "string" then
+        return
+    end
+    token = token:upper()
+
+    -- DoEmote can be a wrapper of C_ChatInfo.PerformEmote, and then both hooks see the same emote
+    local now = GetTime()
+    if token == lastRecordedToken and now == lastRecordedTime then
+        return
+    end
+    lastRecordedToken, lastRecordedTime = token, now
+
+    -- A counter instead of time() so two emotes in the same second still keep their order
+    db.useCounter = db.useCounter + 1
+    db.lastUsed[token] = db.useCounter
+    db.useCount[token] = (db.useCount[token] or 0) + 1
+end
+
+if DoEmote then
+    hooksecurefunc("DoEmote", RecordEmote)
+end
+if C_ChatInfo and C_ChatInfo.PerformEmote then
+    hooksecurefunc(C_ChatInfo, "PerformEmote", RecordEmote)
+end
+
 local function PerformEmote(emote)
     if EmotePicker.db.requireTarget and not UnitExists("target") then
         EmotePicker:Print("|cFFFF0000You need a target to use " .. emote.command .. "|r")
         return
     end
-
-    -- A counter instead of time() so two emotes in the same second still keep their order
-    local profile = EmotePicker.db
-    profile.useCounter = profile.useCounter + 1
-    profile.lastUsed[emote.token] = profile.useCounter
-    profile.useCount[emote.token] = (profile.useCount[emote.token] or 0) + 1
 
     frame:Hide()
     DoEmote(emote.token)
