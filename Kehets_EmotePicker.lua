@@ -30,6 +30,15 @@ local BUTTON_GAP = 4
 
 local STAT_ROW_HEIGHT = 18
 
+-- Width of the button grid, and of the window around it
+local CONTENT_WIDTH = COLUMNS * (BUTTON_WIDTH + BUTTON_GAP) - BUTTON_GAP
+local FRAME_WIDTH = CONTENT_WIDTH + 46
+
+-- Clients that ship a template use it, the others fall back to an older look
+local function HasTemplate(name)
+    return C_XMLUtil ~= nil and C_XMLUtil.GetTemplateInfo ~= nil and C_XMLUtil.GetTemplateInfo(name) ~= nil
+end
+
 local emotes
 local emotesByToken
 local frame
@@ -245,13 +254,9 @@ local function RefreshStatistics()
 end
 
 local function SelectTab(index)
-    for i, button in ipairs(frame.tabButtons) do
-        if i == index then
-            button:LockHighlight()
-        else
-            button:UnlockHighlight()
-        end
-        button.panel:SetShown(i == index)
+    PanelTemplates_SetTab(frame, index)
+    for i, tab in ipairs(frame.Tabs) do
+        tab.panel:SetShown(i == index)
     end
 
     if index == 1 then
@@ -262,9 +267,28 @@ local function SelectTab(index)
     end
 end
 
+-- A recessed box with a scrolling list inside, like the native loot and quest panels
+local function CreateScrollList(parent, top, bottom)
+    local inset = CreateFrame("Frame", nil, parent, HasTemplate("InsetFrameTemplate3") and "InsetFrameTemplate3" or nil)
+    inset:SetPoint("TOPLEFT", 8, top)
+    inset:SetPoint("BOTTOMRIGHT", -8, bottom)
+
+    local scroll = CreateFrame("ScrollFrame", nil, inset, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 4, -4)
+    scroll:SetPoint("BOTTOMRIGHT", -26, 4)
+
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetSize(CONTENT_WIDTH, 1)
+    scroll:SetScrollChild(content)
+
+    return scroll, content
+end
+
 local function CreatePickerFrame()
-    frame = CreateFrame("Frame", "KehetsEmotePickerFrame", UIParent, "BasicFrameTemplateWithInset")
-    frame:SetSize(COLUMNS * (BUTTON_WIDTH + BUTTON_GAP) + 44, 470)
+    -- The flat panel is the native window look on clients that have it, with the bronze art on Forever
+    local flat = HasTemplate("DefaultPanelFlatTemplate")
+    frame = CreateFrame("Frame", "KehetsEmotePickerFrame", UIParent, flat and "DefaultPanelFlatTemplate" or "BasicFrameTemplate")
+    frame:SetSize(FRAME_WIDTH, 450)
     frame:SetPoint("CENTER")
     frame:SetFrameStrata("DIALOG")
     frame:SetMovable(true)
@@ -275,38 +299,53 @@ local function CreatePickerFrame()
     frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
     frame:Hide()
 
+    if not frame.CloseButton then
+        frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButtonDefaultAnchors")
+    end
+
     -- Close with Escape
     table.insert(UISpecialFrames, frame:GetName())
 
-    frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    frame.title:SetPoint("TOP", 0, -5)
-    frame.title:SetText("Kehet's EmotePicker")
+    if frame.TitleContainer and frame.TitleContainer.TitleText then
+        frame.TitleContainer.TitleText:SetText("Kehet's EmotePicker")
+    else
+        frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        frame.title:SetPoint("TOP", 0, -5)
+        frame.title:SetText("Kehet's EmotePicker")
+    end
 
-    frame.tabButtons = {}
+    -- Tabs hang below the window, like the character and spellbook frames
+    frame.Tabs = {}
     for i, label in ipairs({ "Emotes", "Statistics" }) do
-        local button = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-        button:SetSize(100, 22)
-        button:SetPoint("TOPLEFT", 12 + (i - 1) * 104, -28)
-        button:SetText(label)
-        button:SetScript("OnClick", function()
+        local tab = CreateFrame("Button", frame:GetName() .. "Tab" .. i, frame, "PanelTabButtonTemplate")
+        tab:SetID(i)
+        tab:SetText(label)
+        PanelTemplates_TabResize(tab, 0)
+        if i == 1 then
+            tab:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 11, 2)
+        else
+            tab:SetPoint("TOPLEFT", frame.Tabs[i - 1], "TOPRIGHT", 3, 0)
+        end
+        tab:SetScript("OnClick", function()
             SelectTab(i)
         end)
 
         -- Each tab's widgets live on their own panel so switching only toggles the panel
-        button.panel = CreateFrame("Frame", nil, frame)
-        button.panel:SetPoint("TOPLEFT", 0, -54)
-        button.panel:SetPoint("BOTTOMRIGHT")
+        tab.panel = CreateFrame("Frame", nil, frame)
+        tab.panel:SetPoint("TOPLEFT", 0, -24)
+        tab.panel:SetPoint("BOTTOMRIGHT")
 
-        frame.tabButtons[i] = button
+        frame.Tabs[i] = tab
     end
+    PanelTemplates_SetNumTabs(frame, #frame.Tabs)
 
     -- Emotes tab
-    local tab = frame.tabButtons[1].panel
+    local tab = frame.Tabs[1].panel
     frame.emotesTab = tab
 
     tab.search = CreateFrame("EditBox", nil, tab, "SearchBoxTemplate")
-    tab.search:SetPoint("TOPLEFT", 16, -4)
-    tab.search:SetPoint("TOPRIGHT", -12, -4)
+    tab.search:SetPoint("TOPLEFT", 16, -6)
+    tab.search:SetPoint("TOPRIGHT", -10, -6)
     tab.search:SetHeight(20)
     tab.search:SetAutoFocus(false)
     tab.search:HookScript("OnTextChanged", Refresh)
@@ -319,13 +358,7 @@ local function CreatePickerFrame()
         frame:Hide()
     end)
 
-    tab.scroll = CreateFrame("ScrollFrame", nil, tab, "UIPanelScrollFrameTemplate")
-    tab.scroll:SetPoint("TOPLEFT", 12, -32)
-    tab.scroll:SetPoint("BOTTOMRIGHT", -32, 38)
-
-    tab.content = CreateFrame("Frame", nil, tab.scroll)
-    tab.content:SetSize(COLUMNS * (BUTTON_WIDTH + BUTTON_GAP), 1)
-    tab.scroll:SetScrollChild(tab.content)
+    tab.scroll, tab.content = CreateScrollList(tab, -32, 34)
 
     tab.empty = tab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     tab.empty:SetPoint("TOP", tab.scroll, "TOP", 0, -20)
@@ -333,7 +366,7 @@ local function CreatePickerFrame()
 
     tab.requireTarget = CreateFrame("CheckButton", nil, tab, "UICheckButtonTemplate")
     tab.requireTarget:SetSize(24, 24)
-    tab.requireTarget:SetPoint("BOTTOMLEFT", 12, 8)
+    tab.requireTarget:SetPoint("BOTTOMLEFT", 10, 6)
     tab.requireTarget.label = tab.requireTarget:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     tab.requireTarget.label:SetPoint("LEFT", tab.requireTarget, "RIGHT", 2, 0)
     tab.requireTarget.label:SetText("Require target")
@@ -342,19 +375,13 @@ local function CreatePickerFrame()
     end)
 
     -- Statistics tab
-    tab = frame.tabButtons[2].panel
+    tab = frame.Tabs[2].panel
     frame.statsTab = tab
 
     tab.total = tab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    tab.total:SetPoint("TOPLEFT", 16, -8)
+    tab.total:SetPoint("TOPLEFT", 16, -10)
 
-    tab.scroll = CreateFrame("ScrollFrame", nil, tab, "UIPanelScrollFrameTemplate")
-    tab.scroll:SetPoint("TOPLEFT", 12, -32)
-    tab.scroll:SetPoint("BOTTOMRIGHT", -32, 10)
-
-    tab.content = CreateFrame("Frame", nil, tab.scroll)
-    tab.content:SetSize(COLUMNS * (BUTTON_WIDTH + BUTTON_GAP), 1)
-    tab.scroll:SetScrollChild(tab.content)
+    tab.scroll, tab.content = CreateScrollList(tab, -32, 8)
 
     tab.empty = tab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     tab.empty:SetPoint("TOP", tab.scroll, "TOP", 0, -20)

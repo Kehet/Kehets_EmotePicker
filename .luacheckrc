@@ -8,6 +8,7 @@ exclude_files = {
 
 -- WoW API, FrameXML and libraries
 read_globals = {
+    "C_XMLUtil",
     "CreateFrame",
     "DoEmote",
     "GameTooltip",
@@ -16,6 +17,9 @@ read_globals = {
     "LibStub",
     "MAXEMOTEINDEX",
     "Minimap",
+    "PanelTemplates_SetNumTabs",
+    "PanelTemplates_SetTab",
+    "PanelTemplates_TabResize",
     "TextEmoteSpeechList",
     "UIParent",
     "UISpecialFrames",
