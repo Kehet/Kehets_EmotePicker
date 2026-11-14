@@ -1,4 +1,7 @@
-local EmotePicker = LibStub("AceAddon-3.0"):NewAddon("Kehet's EmotePicker", "AceConsole-3.0", "LibKehetsVerbosity-1.0")
+local ADDON_NAME = ...
+
+local EmotePicker = { name = "Kehet's EmotePicker" }
+LibStub("LibKehetsVerbosity-2.0"):Embed(EmotePicker, function() return EmotePicker.db end)
 
 -- Messages the player can turn off or move in the settings
 EmotePicker:RegisterMessageTypes({
@@ -112,7 +115,7 @@ end
 
 -- Most recently used emotes first, the rest keep their default order
 local function SortEmotes()
-    local lastUsed = EmotePicker.db.profile.lastUsed
+    local lastUsed = EmotePicker.db.lastUsed
     table.sort(emotes, function(a, b)
         local usedA = lastUsed[a.token] or 0
         local usedB = lastUsed[b.token] or 0
@@ -124,13 +127,13 @@ local function SortEmotes()
 end
 
 local function PerformEmote(emote)
-    if EmotePicker.db.profile.requireTarget and not UnitExists("target") then
+    if EmotePicker.db.requireTarget and not UnitExists("target") then
         EmotePicker:Print("|cFFFF0000You need a target to use " .. emote.command .. "|r")
         return
     end
 
     -- A counter instead of time() so two emotes in the same second still keep their order
-    local profile = EmotePicker.db.profile
+    local profile = EmotePicker.db
     profile.useCounter = profile.useCounter + 1
     profile.lastUsed[emote.token] = profile.useCounter
     profile.useCount[emote.token] = (profile.useCount[emote.token] or 0) + 1
@@ -224,7 +227,7 @@ local function RefreshStatistics()
     local stats = {}
     local total = 0
 
-    for token, count in pairs(EmotePicker.db.profile.useCount) do
+    for token, count in pairs(EmotePicker.db.useCount) do
         local emote = emotesByToken[token]
         table.insert(stats, { name = emote and emote.name or token, count = count })
         total = total + count
@@ -371,7 +374,7 @@ local function CreatePickerFrame()
     tab.requireTarget.label:SetPoint("LEFT", tab.requireTarget, "RIGHT", 2, 0)
     tab.requireTarget.label:SetText("Require target")
     tab.requireTarget:SetScript("OnClick", function(self)
-        EmotePicker.db.profile.requireTarget = self:GetChecked()
+        EmotePicker.db.requireTarget = self:GetChecked()
     end)
 
     -- Statistics tab
@@ -389,7 +392,7 @@ local function CreatePickerFrame()
 
     frame:SetScript("OnShow", function()
         frame.emotesTab.search:SetText("")
-        frame.emotesTab.requireTarget:SetChecked(EmotePicker.db.profile.requireTarget)
+        frame.emotesTab.requireTarget:SetChecked(EmotePicker.db.requireTarget)
         SortEmotes()
         Refresh()
         SelectTab(1)
@@ -448,7 +451,7 @@ function EmotePicker:CreateMinimapButton()
             local cx, cy = GetCursorPosition()
             local scale = Minimap:GetEffectiveScale()
             local angle = math.atan2(cy / scale - my, cx / scale - mx)
-            self.db.profile.minimap.angle = angle
+            self.db.minimap.angle = angle
             UpdateMinimapButtonPosition(b, angle)
         end)
     end)
@@ -465,34 +468,55 @@ function EmotePicker:CreateMinimapButton()
     end)
     button:SetScript("OnLeave", GameTooltip_Hide)
 
-    UpdateMinimapButtonPosition(button, self.db.profile.minimap.angle)
-    button:SetShown(not self.db.profile.minimap.hide)
+    UpdateMinimapButtonPosition(button, self.db.minimap.angle)
+    button:SetShown(not self.db.minimap.hide)
     self.minimapButton = button
 end
 
 local defaults = {
-    profile = {
-        requireTarget = false,
-        useCounter = 0,
-        lastUsed = {},
-        useCount = {},
-        minimap = {
-            hide = false,
-            angle = math.rad(200),
-        },
+    requireTarget = false,
+    useCounter = 0,
+    lastUsed = {},
+    useCount = {},
+    minimap = {
+        hide = false,
+        angle = math.rad(200),
     },
 }
 
-function EmotePicker:OnInitialize()
-    self.db = LibStub("AceDB-3.0"):New("EmotePickerDB", defaults, true)
-    self:RegisterMessagePage()
-    self:CreateMinimapButton()
-    self:RegisterChatCommand("ep", "SlashCommand")
-    self:RegisterChatCommand("emotepicker", "SlashCommand")
+-- Fills in what the saved table lacks, without touching what the player has
+local function CopyDefaults(saved, source)
+    for key, value in pairs(source) do
+        if type(value) == "table" then
+            if type(saved[key]) ~= "table" then
+                saved[key] = {}
+            end
+            CopyDefaults(saved[key], value)
+        elseif saved[key] == nil then
+            saved[key] = value
+        end
+    end
 end
 
-function EmotePicker:OnEnable()
-    self:Notify("banner", "Enabled - Use /ep or /emotepicker to open the picker, /ep minimap to show or hide the minimap button")
+-- Versions up to 1.4 saved through AceDB-3.0: { profileKeys = { ["Name - Realm"] = profile }, profiles = { ... } }.
+-- Keep the profile this character used, so the usage statistics and the recent emotes stay.
+local function MigrateAceDB(saved)
+    if type(saved.profiles) ~= "table" then
+        return saved
+    end
+    local character = UnitName("player") .. " - " .. GetRealmName()
+    local profileName = type(saved.profileKeys) == "table" and saved.profileKeys[character] or "Default"
+    local profile = saved.profiles[profileName] or saved.profiles.Default or select(2, next(saved.profiles))
+    return type(profile) == "table" and profile or {}
+end
+
+local function OnAddonLoaded()
+    EmotePickerDB = MigrateAceDB(EmotePickerDB or {})
+    CopyDefaults(EmotePickerDB, defaults)
+    EmotePicker.db = EmotePickerDB
+
+    EmotePicker:RegisterMessagePage()
+    EmotePicker:CreateMinimapButton()
 end
 
 function EmotePicker:SlashCommand(msg)
@@ -501,10 +525,29 @@ function EmotePicker:SlashCommand(msg)
     if msg == "" then
         self:Toggle()
     elseif msg == "minimap" then
-        self.db.profile.minimap.hide = not self.db.profile.minimap.hide
-        self.minimapButton:SetShown(not self.db.profile.minimap.hide)
-        self:Print(self.db.profile.minimap.hide and "Minimap button hidden" or "Minimap button shown")
+        self.db.minimap.hide = not self.db.minimap.hide
+        self.minimapButton:SetShown(not self.db.minimap.hide)
+        self:Print(self.db.minimap.hide and "Minimap button hidden" or "Minimap button shown")
     else
         self:Print("Usage: /ep - open the picker, /ep minimap - show or hide the minimap button")
     end
 end
+
+SLASH_KEHETSEMOTEPICKER1 = "/ep"
+SLASH_KEHETSEMOTEPICKER2 = "/emotepicker"
+SlashCmdList.KEHETSEMOTEPICKER = function(msg)
+    EmotePicker:SlashCommand(msg)
+end
+
+local events = CreateFrame("Frame")
+events:RegisterEvent("ADDON_LOADED")
+events:RegisterEvent("PLAYER_LOGIN")
+events:SetScript("OnEvent", function(self, event, name)
+    if event == "ADDON_LOADED" and name == ADDON_NAME then
+        self:UnregisterEvent("ADDON_LOADED")
+        OnAddonLoaded()
+    elseif event == "PLAYER_LOGIN" then
+        self:UnregisterEvent("PLAYER_LOGIN")
+        EmotePicker:Notify("banner", "Enabled - Use /ep or /emotepicker to open the picker, /ep minimap to show or hide the minimap button")
+    end
+end)
