@@ -9,6 +9,9 @@ exclude_files = {
 -- Saved variables and the slash command
 globals = {
     "EmotePickerDB",
+    "KehetsEmotePicker_OnAddonCompartmentClick",
+    "KehetsEmotePicker_OnAddonCompartmentEnter",
+    "KehetsEmotePicker_OnAddonCompartmentLeave",
     "SLASH_KEHETSEMOTEPICKER1",
     "SLASH_KEHETSEMOTEPICKER2",
     "SlashCmdList",
@@ -16,6 +19,9 @@ globals = {
 
 -- WoW API, FrameXML and libraries
 read_globals = {
+    "AddonCompartmentFrame",
+    "ButtonFrameTemplate_HideButtonBar",
+    "ButtonFrameTemplate_ShowButtonBar",
     "C_XMLUtil",
     "CreateFrame",
     "DoEmote",

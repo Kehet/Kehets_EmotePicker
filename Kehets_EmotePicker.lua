@@ -1,6 +1,6 @@
 local ADDON_NAME = ...
 
-local EmotePicker = { name = "Kehet's EmotePicker" }
+local EmotePicker = { name = "Kehet's EmotePicker", chatPrefix = "|cFF009900EmotePicker|r: " }
 LibStub("LibKehetsVerbosity-2.0"):Embed(EmotePicker, function() return EmotePicker.db end)
 
 -- Messages the player can turn off or move in the settings
@@ -87,9 +87,6 @@ local function CollectEmotes()
     local popularRank = {}
     for rank, token in ipairs(POPULAR_TOKENS) do
         popularRank[token] = rank
-        if byToken[token] then
-            byToken[token].popular = true
-        end
     end
 
     -- Voice lines first, then popular emotes in POPULAR_TOKENS order, then alphabetical
@@ -185,8 +182,7 @@ local function Refresh()
     for i, emote in ipairs(filtered) do
         local button = GetButton(i)
         button.emote = emote
-        local label = emote.voice and ("|TInterface\\Common\\VoiceChat-Speaker:14|t " .. emote.name) or emote.name
-        button:SetText(emote.popular and ("|cFFFFD100" .. label .. "|r") or label)
+        button:SetText(emote.voice and ("|TInterface\\Common\\VoiceChat-Speaker:14|t " .. emote.name) or emote.name)
         button:Show()
     end
     for i = #filtered + 1, #buttons do
@@ -262,6 +258,15 @@ local function SelectTab(index)
         tab.panel:SetShown(i == index)
     end
 
+    -- The bottom bar holds the emotes tab's checkbox; the statistics list takes that space
+    if frame.Inset and ButtonFrameTemplate_ShowButtonBar then
+        if index == 1 then
+            ButtonFrameTemplate_ShowButtonBar(frame)
+        else
+            ButtonFrameTemplate_HideButtonBar(frame)
+        end
+    end
+
     if index == 1 then
         frame.emotesTab.search:SetFocus()
     else
@@ -270,15 +275,16 @@ local function SelectTab(index)
     end
 end
 
--- A recessed box with a scrolling list inside, like the native loot and quest panels
-local function CreateScrollList(parent, top, bottom)
-    local inset = CreateFrame("Frame", nil, parent, HasTemplate("InsetFrameTemplate3") and "InsetFrameTemplate3" or nil)
-    inset:SetPoint("TOPLEFT", 8, top)
-    inset:SetPoint("BOTTOMRIGHT", -8, bottom)
-
-    local scroll = CreateFrame("ScrollFrame", nil, inset, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 4, -4)
-    scroll:SetPoint("BOTTOMRIGHT", -26, 4)
+-- A scrolling list inside the window's recessed inset, on the tab's own panel
+local function CreateScrollList(parent)
+    -- The thin native scroll bar where the client has it, the old one with arrow buttons elsewhere
+    local modern = HasTemplate("ScrollFrameTemplate")
+    local scroll = CreateFrame("ScrollFrame", nil, parent, modern and "ScrollFrameTemplate" or "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", frame.listInset, "TOPLEFT", 4, -4)
+    scroll:SetPoint("BOTTOMRIGHT", frame.listInset, "BOTTOMRIGHT", -26, 4)
+    if modern and scroll.ScrollBar then
+        scroll.ScrollBar:SetHideIfUnscrollable(true)
+    end
 
     local content = CreateFrame("Frame", nil, scroll)
     content:SetSize(CONTENT_WIDTH, 1)
@@ -288,12 +294,12 @@ local function CreateScrollList(parent, top, bottom)
 end
 
 local function CreatePickerFrame()
-    -- The flat panel is the native window look on clients that have it, with the bronze art on Forever
-    local flat = HasTemplate("DefaultPanelFlatTemplate")
-    frame = CreateFrame("Frame", "KehetsEmotePickerFrame", UIParent, flat and "DefaultPanelFlatTemplate" or "BasicFrameTemplate")
+    -- The portrait window with an inset and a bottom bar, as the native tabbed windows use
+    local buttonFrame = HasTemplate("ButtonFrameTemplate")
+    frame = CreateFrame("Frame", "KehetsEmotePickerFrame", UIParent, buttonFrame and "ButtonFrameTemplate" or "BasicFrameTemplate")
     frame:SetSize(FRAME_WIDTH, 450)
     frame:SetPoint("CENTER")
-    frame:SetFrameStrata("DIALOG")
+    frame:SetFrameStrata("HIGH")
     frame:SetMovable(true)
     frame:SetClampedToScreen(true)
     frame:EnableMouse(true)
@@ -309,8 +315,23 @@ local function CreatePickerFrame()
     -- Close with Escape
     table.insert(UISpecialFrames, frame:GetName())
 
-    if frame.TitleContainer and frame.TitleContainer.TitleText then
-        frame.TitleContainer.TitleText:SetText("Kehet's EmotePicker")
+    -- Space left of the search box and the total for the portrait, where the window has one
+    local headerLeft = 12
+    if frame.SetPortraitToAsset then
+        frame:SetPortraitToAsset(ICON)
+        headerLeft = 70
+    end
+
+    -- The template's inset, or one in the same place on clients without the template
+    frame.listInset = frame.Inset
+    if not frame.listInset then
+        frame.listInset = CreateFrame("Frame", nil, frame, HasTemplate("InsetFrameTemplate") and "InsetFrameTemplate" or nil)
+        frame.listInset:SetPoint("TOPLEFT", 4, -60)
+        frame.listInset:SetPoint("BOTTOMRIGHT", -6, 26)
+    end
+
+    if frame.SetTitle then
+        frame:SetTitle("Kehet's EmotePicker")
     else
         frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
         frame.title:SetPoint("TOP", 0, -5)
@@ -335,8 +356,7 @@ local function CreatePickerFrame()
 
         -- Each tab's widgets live on their own panel so switching only toggles the panel
         tab.panel = CreateFrame("Frame", nil, frame)
-        tab.panel:SetPoint("TOPLEFT", 0, -24)
-        tab.panel:SetPoint("BOTTOMRIGHT")
+        tab.panel:SetAllPoints()
 
         frame.Tabs[i] = tab
     end
@@ -347,8 +367,8 @@ local function CreatePickerFrame()
     frame.emotesTab = tab
 
     tab.search = CreateFrame("EditBox", nil, tab, "SearchBoxTemplate")
-    tab.search:SetPoint("TOPLEFT", 16, -6)
-    tab.search:SetPoint("TOPRIGHT", -10, -6)
+    tab.search:SetPoint("TOPLEFT", headerLeft, -33)
+    tab.search:SetPoint("TOPRIGHT", -12, -33)
     tab.search:SetHeight(20)
     tab.search:SetAutoFocus(false)
     tab.search:HookScript("OnTextChanged", Refresh)
@@ -361,7 +381,7 @@ local function CreatePickerFrame()
         frame:Hide()
     end)
 
-    tab.scroll, tab.content = CreateScrollList(tab, -32, 34)
+    tab.scroll, tab.content = CreateScrollList(tab)
 
     tab.empty = tab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     tab.empty:SetPoint("TOP", tab.scroll, "TOP", 0, -20)
@@ -369,10 +389,14 @@ local function CreatePickerFrame()
 
     tab.requireTarget = CreateFrame("CheckButton", nil, tab, "UICheckButtonTemplate")
     tab.requireTarget:SetSize(24, 24)
-    tab.requireTarget:SetPoint("BOTTOMLEFT", 10, 6)
-    tab.requireTarget.label = tab.requireTarget:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    tab.requireTarget.label:SetPoint("LEFT", tab.requireTarget, "RIGHT", 2, 0)
-    tab.requireTarget.label:SetText("Require target")
+    tab.requireTarget:SetPoint("BOTTOMLEFT", 8, 1)
+    -- The template's own label; older clients name it .text, and some have none
+    local label = tab.requireTarget.Text or tab.requireTarget.text
+    if not label then
+        label = tab.requireTarget:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        label:SetPoint("LEFT", tab.requireTarget, "RIGHT", 2, 0)
+    end
+    label:SetText("Require target")
     tab.requireTarget:SetScript("OnClick", function(self)
         EmotePicker.db.requireTarget = self:GetChecked()
     end)
@@ -382,9 +406,9 @@ local function CreatePickerFrame()
     frame.statsTab = tab
 
     tab.total = tab:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    tab.total:SetPoint("TOPLEFT", 16, -10)
+    tab.total:SetPoint("TOPLEFT", headerLeft, -38)
 
-    tab.scroll, tab.content = CreateScrollList(tab, -32, 8)
+    tab.scroll, tab.content = CreateScrollList(tab)
 
     tab.empty = tab:CreateFontString(nil, "OVERLAY", "GameFontDisable")
     tab.empty:SetPoint("TOP", tab.scroll, "TOP", 0, -20)
@@ -414,6 +438,29 @@ local function UpdateMinimapButtonPosition(button, angle)
     local radius = Minimap:GetWidth() / 2 + 5
     button:ClearAllPoints()
     button:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * radius, math.sin(angle) * radius)
+end
+
+local function ShowLauncherTooltip(owner, draggable)
+    GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
+    GameTooltip:SetText("Kehet's EmotePicker")
+    GameTooltip:AddLine("Click to pick an emote", 1, 1, 1)
+    if draggable then
+        GameTooltip:AddLine("Drag to move this button", 1, 1, 1)
+    end
+    GameTooltip:Show()
+end
+
+-- Entry in the minimap's addon menu, on clients that have one. The .toc names these functions.
+function KehetsEmotePicker_OnAddonCompartmentClick()
+    EmotePicker:Toggle()
+end
+
+function KehetsEmotePicker_OnAddonCompartmentEnter(_, button)
+    ShowLauncherTooltip(button, false)
+end
+
+function KehetsEmotePicker_OnAddonCompartmentLeave()
+    GameTooltip:Hide()
 end
 
 function EmotePicker:CreateMinimapButton()
@@ -460,11 +507,7 @@ function EmotePicker:CreateMinimapButton()
     end)
 
     button:SetScript("OnEnter", function(b)
-        GameTooltip:SetOwner(b, "ANCHOR_LEFT")
-        GameTooltip:SetText("Kehet's EmotePicker")
-        GameTooltip:AddLine("Click to pick an emote", 1, 1, 1)
-        GameTooltip:AddLine("Drag to move this button", 1, 1, 1)
-        GameTooltip:Show()
+        ShowLauncherTooltip(b, true)
     end)
     button:SetScript("OnLeave", GameTooltip_Hide)
 
@@ -479,7 +522,8 @@ local defaults = {
     lastUsed = {},
     useCount = {},
     minimap = {
-        hide = false,
+        -- The addon menu replaces the round button where the client has one
+        hide = AddonCompartmentFrame ~= nil,
         angle = math.rad(200),
     },
 }
