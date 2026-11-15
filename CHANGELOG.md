@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/Kehet/Kehets_EmotePicker/compare/1.4.0...1.5.0) (2026-11-15)
+
+
+### Features
+
+* match the Forever window design and add an addon menu entry ([#27](https://github.com/Kehet/Kehets_EmotePicker/issues/27)) ([47ba44a](https://github.com/Kehet/Kehets_EmotePicker/commit/47ba44a31245415e198f71d05b696a814d3896b2))
+* native picker window and no Ace3 ([#24](https://github.com/Kehet/Kehets_EmotePicker/issues/24)) ([f1700e1](https://github.com/Kehet/Kehets_EmotePicker/commit/f1700e1493b9c5accc1079b914d03288766d6d2b))
+
 ## [1.4.0](https://github.com/Kehet/Kehets_EmotePicker/compare/1.3.1...1.4.0) (2026-11-05)
 
 
