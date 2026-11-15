@@ -16,6 +16,8 @@ globals = {
 
 -- WoW API, FrameXML and libraries
 read_globals = {
+    "ButtonFrameTemplate_HideButtonBar",
+    "ButtonFrameTemplate_ShowButtonBar",
     "C_XMLUtil",
     "CreateFrame",
     "DoEmote",
