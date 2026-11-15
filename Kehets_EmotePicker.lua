@@ -87,9 +87,6 @@ local function CollectEmotes()
     local popularRank = {}
     for rank, token in ipairs(POPULAR_TOKENS) do
         popularRank[token] = rank
-        if byToken[token] then
-            byToken[token].popular = true
-        end
     end
 
     -- Voice lines first, then popular emotes in POPULAR_TOKENS order, then alphabetical
@@ -185,8 +182,7 @@ local function Refresh()
     for i, emote in ipairs(filtered) do
         local button = GetButton(i)
         button.emote = emote
-        local label = emote.voice and ("|TInterface\\Common\\VoiceChat-Speaker:14|t " .. emote.name) or emote.name
-        button:SetText(emote.popular and ("|cFFFFD100" .. label .. "|r") or label)
+        button:SetText(emote.voice and ("|TInterface\\Common\\VoiceChat-Speaker:14|t " .. emote.name) or emote.name)
         button:Show()
     end
     for i = #filtered + 1, #buttons do
