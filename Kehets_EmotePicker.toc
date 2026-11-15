@@ -8,6 +8,10 @@
 ## X-Curse-Project-ID: 1711340
 ## X-Wago-ID: ANz7mM64
 ## SavedVariables: EmotePickerDB
+## IconTexture: Interface\Icons\INV_Misc_GroupNeedMore
+## AddonCompartmentFunc: KehetsEmotePicker_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: KehetsEmotePicker_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: KehetsEmotePicker_OnAddonCompartmentLeave
 
 #@non-debug@
 # embeds.xml

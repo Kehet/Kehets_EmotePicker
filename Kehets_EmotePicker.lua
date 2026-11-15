@@ -440,6 +440,29 @@ local function UpdateMinimapButtonPosition(button, angle)
     button:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * radius, math.sin(angle) * radius)
 end
 
+local function ShowLauncherTooltip(owner, draggable)
+    GameTooltip:SetOwner(owner, "ANCHOR_LEFT")
+    GameTooltip:SetText("Kehet's EmotePicker")
+    GameTooltip:AddLine("Click to pick an emote", 1, 1, 1)
+    if draggable then
+        GameTooltip:AddLine("Drag to move this button", 1, 1, 1)
+    end
+    GameTooltip:Show()
+end
+
+-- Entry in the minimap's addon menu, on clients that have one. The .toc names these functions.
+function KehetsEmotePicker_OnAddonCompartmentClick()
+    EmotePicker:Toggle()
+end
+
+function KehetsEmotePicker_OnAddonCompartmentEnter(_, button)
+    ShowLauncherTooltip(button, false)
+end
+
+function KehetsEmotePicker_OnAddonCompartmentLeave()
+    GameTooltip:Hide()
+end
+
 function EmotePicker:CreateMinimapButton()
     local button = CreateFrame("Button", "KehetsEmotePickerMinimapButton", Minimap)
     button:SetSize(31, 31)
@@ -484,11 +507,7 @@ function EmotePicker:CreateMinimapButton()
     end)
 
     button:SetScript("OnEnter", function(b)
-        GameTooltip:SetOwner(b, "ANCHOR_LEFT")
-        GameTooltip:SetText("Kehet's EmotePicker")
-        GameTooltip:AddLine("Click to pick an emote", 1, 1, 1)
-        GameTooltip:AddLine("Drag to move this button", 1, 1, 1)
-        GameTooltip:Show()
+        ShowLauncherTooltip(b, true)
     end)
     button:SetScript("OnLeave", GameTooltip_Hide)
 
@@ -503,7 +522,8 @@ local defaults = {
     lastUsed = {},
     useCount = {},
     minimap = {
-        hide = false,
+        -- The addon menu replaces the round button where the client has one
+        hide = AddonCompartmentFrame ~= nil,
         angle = math.rad(200),
     },
 }
