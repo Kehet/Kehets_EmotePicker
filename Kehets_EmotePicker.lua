@@ -1,6 +1,6 @@
 local ADDON_NAME = ...
 
-local EmotePicker = { name = "Kehet's EmotePicker" }
+local EmotePicker = { name = "Kehet's EmotePicker", chatPrefix = "|cFF009900EmotePicker|r: " }
 LibStub("LibKehetsVerbosity-2.0"):Embed(EmotePicker, function() return EmotePicker.db end)
 
 -- Messages the player can turn off or move in the settings
